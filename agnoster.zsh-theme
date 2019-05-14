@@ -43,7 +43,8 @@ fi
 
 # Characters
 SEGMENT_SEPARATOR="\ue0b0"
-PLUSMINUS="\u00b1"
+# PLUSMINUS="\u00b1 "
+PLUSMINUS="● "
 BRANCH="\ue0a0"
 DETACHED="\u27a6"
 CROSS="\u2718"
@@ -116,7 +117,7 @@ prompt_git() {
 
 # Dir: current working directory
 prompt_dir() {
-  prompt_segment blue $PRIMARY_FG ' %~ '
+  prompt_segment blue $PRIMARY_FG ' %1/ '
 }
 
 # Status:
