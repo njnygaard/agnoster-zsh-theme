@@ -43,13 +43,31 @@ fi
 
 # Characters
 SEGMENT_SEPARATOR="\ue0b0"
-# PLUSMINUS="\u00b1 "
-PLUSMINUS="● "
+PLUSMINUS="\u00b1 "
+PLUS='✚'
+DOT='●'
 BRANCH="\ue0a0"
 DETACHED="\u27a6"
 CROSS="\u2718"
 LIGHTNING="\u26a1"
 GEAR="\u2699"
+
+pickForeground(){
+  printf '\x1b[38;2;%s;%s;%sm' $1 $2 $3
+}
+
+pickBackground(){
+  printf '\x1b[48;2;%s;%s;%sm' $1 $2 $3
+}
+
+no-color(){
+  echo -en "\x1b[0m\n"
+}
+
+white-on-dark-blue(){
+  pickForeground 255 255 255
+  pickBackground 0 55 255
+}
 
 # Begin a segment
 # Takes two arguments, background and foreground. Both can be omitted,
@@ -113,6 +131,49 @@ prompt_git() {
     fi
     prompt_segment $color $PRIMARY_FG
     print -n " $ref"
+  fi
+}
+
+# Git: branch/detached head, dirty status
+prompt_git_old() {
+  (( $+commands[git] )) || return
+  local PL_BRANCH_CHAR
+  () {
+    local LC_ALL="" LC_CTYPE="en_US.UTF-8"
+    PL_BRANCH_CHAR=$'\ue0a0'         # 
+  }
+  local ref dirty mode repo_path
+  repo_path=$(git rev-parse --git-dir 2>/dev/null)
+
+  if $(git rev-parse --is-inside-work-tree >/dev/null 2>&1); then
+    dirty=$(parse_git_dirty)
+    ref=$(git symbolic-ref HEAD 2> /dev/null) || ref="➦ $(git rev-parse --short HEAD 2> /dev/null)"
+    if [[ -n $dirty ]]; then
+      prompt_segment yellow black
+    else
+      prompt_segment green black
+    fi
+
+    if [[ -e "${repo_path}/BISECT_LOG" ]]; then
+      mode=" <B>"
+    elif [[ -e "${repo_path}/MERGE_HEAD" ]]; then
+      mode=" >M<"
+    elif [[ -e "${repo_path}/rebase" || -e "${repo_path}/rebase-apply" || -e "${repo_path}/rebase-merge" || -e "${repo_path}/../.dotest" ]]; then
+      mode=" >R>"
+    fi
+
+    setopt promptsubst
+    autoload -Uz vcs_info
+
+    zstyle ':vcs_info:*' enable git
+    zstyle ':vcs_info:*' get-revision true
+    zstyle ':vcs_info:*' check-for-changes true
+    zstyle ':vcs_info:*' stagedstr '✚'
+    zstyle ':vcs_info:*' unstagedstr '●'
+    zstyle ':vcs_info:*' formats ' %u%c'
+    zstyle ':vcs_info:*' actionformats ' %u%c'
+    vcs_info
+    echo -n "${ref/refs\/heads\//$PL_BRANCH_CHAR }${vcs_info_msg_0_%% }${mode}"
   fi
 }
 
